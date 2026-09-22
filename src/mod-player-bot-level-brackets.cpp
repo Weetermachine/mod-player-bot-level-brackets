@@ -601,7 +601,7 @@ static uint8 GetRandomLevelInRange(const LevelRangeConfig& range)
  */
 static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRangeConfig* factionRanges)
 {
-    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
+    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->IsLoggingOut() || bot->IsDuringRemoveFromWorld())
     {
         return;
     }
@@ -700,7 +700,7 @@ static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRange
  */
 static bool BotInGuildWithRealPlayer(Player* bot)
 {
-    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
+    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->IsLoggingOut() || bot->IsDuringRemoveFromWorld())
     {
         return false;
     }
@@ -728,7 +728,7 @@ static bool BotInGuildWithRealPlayer(Player* bot)
  */
 static bool BotInFriendList(Player* bot)
 {
-    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
+    if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->IsLoggingOut() || bot->IsDuringRemoveFromWorld())
     {
         return false;
     }
@@ -889,7 +889,7 @@ static void ClampAndBalanceBrackets()
  */
 static bool IsBotSafeForLevelReset(Player* bot)
 {
-    if (!bot || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
+    if (!bot || !bot->GetSession() || bot->GetSession()->IsLoggingOut() || bot->IsDuringRemoveFromWorld())
     {
         if (g_BotDistFullDebugMode)
         {
@@ -1026,7 +1026,7 @@ static void ProcessPendingLevelResets()
                 continue;
             }
 
-            if (!bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
+            if (!bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->IsLoggingOut() || bot->IsDuringRemoveFromWorld())
             {
                 it = g_PendingLevelResets.erase(it);
                 continue;
