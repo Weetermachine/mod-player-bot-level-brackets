@@ -599,16 +599,16 @@ static uint8 GetRandomLevelInRange(const LevelRangeConfig& range)
  * @param targetRangeIndex Index of the target level range in the factionRanges array.
  * @param factionRanges Pointer to an array of LevelRangeConfig structures defining level brackets for the bot's faction.
  */
-static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRangeConfig* factionRanges)
+static bool AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRangeConfig* factionRanges)
 {
     if (!bot || !bot->IsInWorld() || !bot->GetSession() || bot->GetSession()->isLogingOut() || bot->IsDuringRemoveFromWorld())
     {
-        return;
+        return false;
     }
 
     if (targetRangeIndex < 0 || targetRangeIndex >= g_NumRanges)
     {
-        return;
+        return false;
     }
 
     if (bot->IsMounted())
@@ -633,7 +633,7 @@ static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRange
                          "[BotLevelBrackets] AdjustBotToRange: Cannot assign {} Death Knight '{}' ({}) to range {}-{} (below level 55).",
                          playerFaction, bot->GetName(), botOriginalLevel, lowerBound, upperBound);
             }
-            return;
+            return false;
         }
         if (lowerBound < 55)
         {
@@ -641,7 +641,7 @@ static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRange
         }
         if (lowerBound > upperBound)
         {
-            return;
+            return false;
         }
         newLevel = urand(lowerBound, upperBound);
     }
@@ -657,7 +657,7 @@ static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRange
                          "[BotLevelBrackets] AdjustBotToRange: Invalid range {}-{} for {} bot '{}'.",
                          range.lower, range.upper, playerFaction, bot->GetName());
             }
-            return;
+            return false;
         }
         newLevel = GetRandomLevelInRange(range);
     }
@@ -685,6 +685,7 @@ static void AdjustBotToRange(Player* bot, int targetRangeIndex, const LevelRange
     }
 
     ChatHandler(bot->GetSession()).SendSysMessage("[mod-bot-level-brackets] Your level has been reset.");
+    return true;
 }
 
 
@@ -1079,10 +1080,17 @@ static void ProcessPendingLevelResets()
 
             if (bot && bot->IsInWorld() && IsBotSafeForLevelReset(bot))
             {
-                AdjustBotToRange(bot, targetRange, it->factionRanges);
+                bool adjusted = AdjustBotToRange(bot, targetRange, it->factionRanges);
                 if (g_BotDistFullDebugMode)
                 {
-                    LOG_INFO("server.loading", "[BotLevelBrackets] Bot '{}' successfully reset to level range {}-{}.", bot->GetName(), it->factionRanges[targetRange].lower, it->factionRanges[targetRange].upper);
+                    if (adjusted)
+                    {
+                        LOG_INFO("server.loading", "[BotLevelBrackets] Bot '{}' successfully reset to level range {}-{}.", bot->GetName(), it->factionRanges[targetRange].lower, it->factionRanges[targetRange].upper);
+                    }
+                    else
+                    {
+                        LOG_INFO("server.loading", "[BotLevelBrackets] Bot '{}' could not be reset to level range {}-{}; leaving at level {}.", bot->GetName(), it->factionRanges[targetRange].lower, it->factionRanges[targetRange].upper, bot->GetLevel());
+                    }
                 }
                 it = g_PendingLevelResets.erase(it);
                 ++processed;
@@ -1516,14 +1524,28 @@ public:
             }
             if (g_IgnoreGuildBotsWithRealPlayers && BotInGuildWithRealPlayer(player))
             {
-                continue;
+                 if (g_BotDistFullDebugMode)
+		{
+        		LOG_INFO("server.loading", "[BotLevelBrackets] Skipping bot '{}' - in guild with real player.", player->GetName());
+    		}
+
+		continue;
             }
             if (g_IgnoreFriendListed && BotInFriendList(player))
             {
-                continue;
+                 if (g_BotDistFullDebugMode)
+    		{
+        		LOG_INFO("server.loading", "[BotLevelBrackets] Skipping bot '{}' - on a real player's friend list.", player->GetName());
+    		}
+
+		continue;
             }
             if (g_IgnoreArenaTeamBots && BotInArenaTeam(player))
             {
+		if (g_BotDistFullDebugMode)
+		{
+        		LOG_INFO("server.loading", "[BotLevelBrackets] Skipping bot '{}' - in an arena team.", player->GetName());
+    		}
                 continue;
             }
             if (IsAlliancePlayerBot(player))
@@ -1629,6 +1651,12 @@ public:
                         targetIdx++;
                         continue;
                     }
+                    // Death Knights cannot exist below level 55 - do not queue them for sub-55 brackets.
+                    if (bot->getClass() == CLASS_DEATH_KNIGHT && g_AllianceLevelRanges[targetRange].upper < 55)
+                    {
+                        continue;
+                    }
+
 
                     // Only flag if not already flagged
                     ObjectGuid botGuid = bot->GetGUID();
@@ -1670,6 +1698,12 @@ public:
                         targetIdx++;
                         continue;
                     }
+                    // Death Knights cannot exist below level 55 - do not queue them for sub-55 brackets.
+                    if (bot->getClass() == CLASS_DEATH_KNIGHT && g_AllianceLevelRanges[targetRange].upper < 55)
+                    {
+                        continue;
+                    }
+
 
                     ObjectGuid botGuid = bot->GetGUID();
                     bool alreadyFlagged = false;
@@ -1751,6 +1785,12 @@ public:
                         targetIdx++;
                         continue;
                     }
+                    // Death Knights cannot exist below level 55 - do not queue them for sub-55 brackets.
+                    if (bot->getClass() == CLASS_DEATH_KNIGHT && g_HordeLevelRanges[targetRange].upper < 55)
+                    {
+                        continue;
+                    }
+
 
                     bool alreadyFlagged = false;
                     ObjectGuid botGuid = bot->GetGUID();
@@ -1790,6 +1830,12 @@ public:
                         targetIdx++;
                         continue;
                     }
+                    // Death Knights cannot exist below level 55 - do not queue them for sub-55 brackets.
+                    if (bot->getClass() == CLASS_DEATH_KNIGHT && g_HordeLevelRanges[targetRange].upper < 55)
+                    {
+                        continue;
+                    }
+
 
                     bool alreadyFlagged = false;
                     ObjectGuid botGuid = bot->GetGUID();
